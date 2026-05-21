@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "skillVersion": "0.8.0",
+  "featureName": "Login Retry Policy",
+  "slug": "login-retry-policy",
+  "workItem": {
+    "id": "12345",
+    "url": "https://dev.azure.com/example/_workitems/edit/12345",
+    "title": "Login Retry Policy"
+  },
+  "phases": [
+    {
+      "name": "Classify failures",
+      "optional": false
+    },
+    {
+      "name": "Retry policy core",
+      "optional": false
+    },
+    {
+      "name": "Telemetry & dashboards",
+      "optional": false
+    },
+    {
+      "name": "Migrate mobile",
+      "optional": true
+    }
+  ],
+  "createdAt": "2025-09-10T09:00:00Z",
+  "updatedAt": "2026-05-13T22:52:28Z",
+  "steps": {
+    "inputs.qna": {
+      "status": "done",
+      "completedAt": "2025-09-11T11:00:00Z"
+    },
+    "inputs.workItem": {
+      "status": "done",
+      "completedAt": "2025-09-10T09:30:00Z"
+    },
+    "inputs.repoScan": {
+      "status": "done",
+      "completedAt": "2025-09-10T10:15:00Z"
+    },
+    "inputs.telemetryBaselines": {
+      "status": "skipped",
+      "reason": "manually filled from existing dashboards"
+    },
+    "investigation": {
+      "status": "skipped",
+      "reason": "feature scope was already clear from the ADO description"
+    },
+    "diagrams.draft": {
+      "status": "done",
+      "completedAt": "2025-09-12T14:00:00Z",
+      "files": [
+        "phase-2-retry-policy.mmd"
+      ]
+    },
+    "sections.render": {
+      "status": "done",
+      "completedAt": "2025-09-14T17:00:00Z"
+    },
+    "assemble": {
+      "status": "done",
+      "lastRenderedAt": "2026-05-13T22:52:28Z",
+      "outputPath": "Q:\\src\\dev-design-skill\\examples\\filled-example\\dev-design-12345-login-retry-policy\\dev-design-12345-login-retry-policy.md",
+      "fragmentsUsed": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
+    },
+    "publish.ado": {
+      "status": "skipped",
+      "reason": "example workspace \u2014 no real ADO target"
+    },
+    "publish.pr": {
+      "status": "skipped",
+      "reason": "example workspace \u2014 no real repo target"
+    }
+  },
+  "sectionStatus": {
+    "00-preamble": "done",
+    "01-summary-and-goals": "done",
+    "02-signoffs": "done",
+    "03-scope": "done",
+    "04-feature-flags": "done",
+    "05-implementation-phases": "done",
+    "06-tradeoffs": "done",
+    "07-telemetry": "done",
+    "08-ownership": "done",
+    "09-test-scenarios": "done",
+    "10-appendix": "done"
+  },
+  "warnings": []
+}

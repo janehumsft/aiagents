@@ -1,0 +1,16 @@
+flowchart LR
+    subgraph Current
+        A1["signIn()"] --> B1{"backend error?"}
+        B1 -->|"yes"| C1["throw SignInException"]
+        C1 --> D1["user sees error, must retry manually"]
+        B1 -->|"no"| E1["success"]
+    end
+    subgraph Proposed
+        A2["signIn()"] --> R["RetryPolicy.execute()"]
+        R --> B2{"backend error?"}
+        B2 -->|"kind=transient"| W["wait (backoff)"]
+        W --> R
+        B2 -->|"kind=terminal"| C2["throw SignInException (no retry)"]
+        B2 -->|"no"| E2["success"]
+        R -->|"budget exhausted"| X["throw last SignInException"]
+    end

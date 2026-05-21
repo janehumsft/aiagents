@@ -1,0 +1,44 @@
+{
+  "featureName": "Login Retry Policy",
+  "summary": "Add a client-side retry policy that distinguishes transient failures from terminal failures, retries the transient cases with bounded exponential backoff, and emits clear telemetry so we can measure the recovery rate.",
+  "phases": [
+    {"name": "Classify failures", "optional": false},
+    {"name": "Retry policy core", "optional": false},
+    {"name": "Telemetry & dashboards", "optional": false},
+    {"name": "Migrate mobile", "optional": true}
+  ],
+  "reviewers": [
+    {"role": "Identity Platform", "name": "Jamie Liu"},
+    {"role": "Desktop Shell", "name": "Priya Singh"},
+    {"role": "Telemetry Guild", "name": "Marcus Webb"}
+  ],
+  "areaPath": "Identity\\Desktop Auth\\Retry Policy",
+  "incidentRoute": "auth-sdk-oncall",
+  "inScope": [
+    "Desktop sign-in (Win32, macOS)",
+    "Web sign-in modal",
+    "Programmatic refresh-token renewal"
+  ],
+  "outOfScope": [
+    "Mobile sign-in (separate auth stack)",
+    "Server-side retry (already handled by grpc middleware)",
+    "Lockout / suspicious-activity flows"
+  ],
+  "featureFlags": [
+    {"name": "auth.retryPolicy.enabled", "phase": 2, "purpose": "Master switch"},
+    {"name": "auth.retryPolicy.maxAttempts", "phase": 2, "purpose": "Ops override"},
+    {"name": "auth.retryPolicy.telemetry", "phase": 3, "purpose": "Telemetry toggle"}
+  ],
+  "tradeoffs": [
+    "Slower P95 on terminal failures (~200ms)",
+    "Up to 3x retry amplification on flaky days",
+    "+5% telemetry volume"
+  ],
+  "testScenarios": [
+    "2 transient + 1 success",
+    "3 transient + exhaustion",
+    "Terminal failure -> no retry",
+    "Retry-After honored",
+    "Flag off = legacy behavior"
+  ]
+}

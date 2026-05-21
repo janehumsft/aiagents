@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Question bank consumed by walker.py. Each top-level key is a section id (matches workspace/sections/<id>.md). The agent uses these as ask_user prompts. Question 'kind' values: 'paragraph' (multi-line text), 'list' (one item per line), 'choice' (one of), 'multichoice' (any subset), 'short' (single line). 'seedSources' indicates which input files the agent should consult for default suggestions. 'optional': true means the question can be skipped without blocking section completion. Authoring principles: keep prompts terse, push the user for short and source-backed answers, never seed feature-flag names from any scan, and never seed telemetry event names or code owners from any scan. In 'infer' authoring mode (manifest.authoringMode) the agent should draft each section from available sources (artifacts + ADO + PR + investigation) and ask one short 'accept / edit / skip' confirmation per section instead of walking every question. Detailed mode walks every question. In simple complexity profile (manifest.complexityProfile.value == 'simple'), the agent should skip phase-specific questions (summary.phases) and render §5 as a flat 'Implementation' block.",
+  "00-preamble": {
+    "description": "Title heading + metadata block. Mostly auto-derived; user only confirms the title.",
+    "seedSources": ["answers.json", "work-item-derived.json"],
+    "renderNotes": "Render as '# Dev Design: <feature>' + HTML comment metadata block (id, url, type, state, areaPath, iterationPath, assignedTo, parentId, parentTitle, tags).",
+    "questions": [
+      {
+        "id": "preamble.title",
+        "kind": "short",
+        "prompt": "Confirm doc title (default: 'Dev Design: <feature>'). Enter to accept.",
+        "optional": true
+      }
+    ]
+  },
+  "01-summary-and-goals": {
+    "description": "One short problem statement + (optional) phase names. 1-3 sentences, no filler.",
+    "seedSources": ["work-item-derived.json", "pr-summary.md", "synth/findings.md", "inputs/artifacts/artifacts-index.json"],
+    "renderNotes": "Short summary paragraph above '### Phases' bulleted list (when phased). For simple complexity profile, omit the '### Phases' subsection entirely — just the summary paragraph.",
+    "questions": [
+      {
+        "id": "summary.paragraph",
+        "kind": "paragraph",
+        "prompt": "Summary in 1-3 sentences: problem + desired end state. Skip filler; no 'this document describes...' framing.",
+        "seed": "work-item-derived.json::descriptionMarkdown | pr-summary.md | artifacts (one-pager)",
+        "required": true
+      },
+      {
+        "id": "summary.phases",
+        "kind": "list",
+        "prompt": "Phase names in order, one per line (e.g., 'Backend API', 'Web UI', 'Telemetry'). Skip entirely if this is a simple, single-deliverable feature — the doc will render without phases.",
+        "minItems": 0,
+        "optional": true
+      }
+    ]
+  },
+  "02-signoffs": {
+    "description": "Reviewers and contacts. Drop the table if empty rather than padding with placeholders.",
+    "seedSources": ["work-item-derived.json"],
+    "renderNotes": "Signoffs table (Role | Name | Date | Status). If no real rows after seeding + user input, drop the table and leave a single TODO line. Optional Contacts list under it.",
+    "questions": [
+      {
+        "id": "signoffs.reviewers",
+        "kind": "list",
+        "prompt": "Reviewers, one per line: 'Team or Role -- Name'. Suggested: ADO assignee, parent owner. Skip to leave empty.",
+        "seed": "work-item-derived.json::assignedTo+parent.assignedTo",
+        "optional": true
+      },
+      {
+        "id": "signoffs.contacts",
+        "kind": "list",
+        "prompt": "Non-reviewer contacts to keep in the loop, one per line: 'Name -- area'. Optional.",
+        "optional": true
+      }
+    ]
+  },
+  "03-scope": {
+    "description": "In/out of scope bullets. Drop the Current-vs-Proposed table if nothing concrete to put in it.",
+    "seedSources": ["answers.json", "pr-summary.md"],
+    "renderNotes": "Two short bulleted lists ('In scope', 'Out of scope'). Only include 'Current vs Proposed' subsection if the user or PR diff supplies the comparison; otherwise omit it.",
+    "questions": [
+      {
+        "id": "scope.inScope",
+        "kind": "list",
+        "prompt": "In-scope items, one bullet per line. Concrete only; skip if you can't name anything yet.",
+        "optional": true
+      },
+      {
+        "id": "scope.outOfScope",
+        "kind": "list",
+        "prompt": "Out-of-scope items, one per line: '<item> -- <one-line reason>'. Skip if none.",
+        "optional": true
+      },
+      {
+        "id": "scope.currentBehavior",
+        "kind": "paragraph",
+        "prompt": "Current/legacy behavior in 1-2 sentences. Skip to drop the Current-vs-Proposed table entirely.",
+        "optional": true
+      }
+    ]
+  },
+  "04-feature-flags": {
+    "description": "Feature flags from the USER ONLY. Never seed flag names from a scan or guess.",
+    "seedSources": ["answers.json"],
+    "renderNotes": "Feature Flags table (Flag | Purpose | Phase | Rollout Notes). For simple complexity profile drop the `Phase` column and use (Flag | Purpose | Rollout Notes). Rows come from the user's typed list only (and from any PR-diff flag references the user explicitly confirmed in Step 1.6). If the user supplies zero flags, replace the table with a single TODO line. Never auto-populate from a repo read.",
+    "questions": [
+      {
+        "id": "flags.list",
+        "kind": "list",
+        "prompt": "Feature flags for this design, one per line: 'flagName -- purpose -- phase or rollout note'. Type only flags you actually know about; do not guess. Skip if there are none yet.",
+        "optional": true
+      }
+    ]
+  },
+  "05-implementation-phases": {
+    "description": "Phased: one H3 per phase from §1. Simple: a single flat 'Implementation' block. Drop subsections the user has no input for; do not pad.",
+    "seedSources": ["answers.json", "work-item-derived.json", "pr-diff.patch", "synth/work-breakdown.md", "inputs/artifacts/artifacts-index.json"],
+    "renderNotes": "Phased: heading stays '## 5. Implementation Phases'; one '### Phase N: <name>' subsection per user phase with motivation paragraph, '**Current vs. Proposed Flow**:' marker line (for the Mermaid embedder), Proposed Changes, Error Handling, Rollout Plan, Validation. Simple: change heading to '## 5. Implementation'; render a single flat block (motivation paragraph + '**Current vs. Proposed Flow**:' marker + Proposed Changes + Error Handling + Validation) — no `### Phase N:` subheadings. OMIT any subsection the user has no content for rather than emitting [Change description] placeholders.",
+    "questions": [
+      {
+        "id": "phases.motivations",
+        "kind": "paragraph",
+        "prompt": "Phased designs: one sentence per phase explaining WHY it's needed (separate phases with '---' on its own line). Simple designs: one short paragraph explaining the motivation for this change overall.",
+        "required": true
+      },
+      {
+        "id": "phases.changes",
+        "kind": "paragraph",
+        "prompt": "(Optional) Concrete code/config changes (file paths welcome). Phased: 2-5 changes per phase, separated by '---'. Simple: a single bulleted list. Skip if you don't have specifics yet.",
+        "optional": true
+      }
+    ]
+  },
+  "06-tradeoffs": {
+    "description": "Tradeoffs from user input only. No table if no entries.",
+    "seedSources": ["answers.json", "synth/findings.md"],
+    "renderNotes": "Tradeoffs table (Label | Description | Mitigation). If no entries, drop the table and leave a single TODO line.",
+    "questions": [
+      {
+        "id": "tradeoffs.items",
+        "kind": "list",
+        "prompt": "Tradeoffs / takebacks, one per line: 'label -- description -- mitigation'. Skip if none.",
+        "optional": true
+      }
+    ]
+  },
+  "07-telemetry": {
+    "description": "Four subsections. ALL content is user-supplied — never auto-detected from a repo scan. Drop any subsection without real content.",
+    "seedSources": ["answers.json"],
+    "renderNotes": "§7.1 goals, §7.2 existing events the user names, §7.3 new events the user adds, §7.4 dashboards/alerts. OMIT any subsection that has no real content; don't invent baselines or event names.",
+    "questions": [
+      {
+        "id": "telemetry.goals",
+        "kind": "paragraph",
+        "prompt": "Success metrics in 1-2 sentences (latency targets, error budgets, adoption goals). Skip to drop §7.1.",
+        "optional": true
+      },
+      {
+        "id": "telemetry.existingEvents",
+        "kind": "list",
+        "prompt": "Existing telemetry events this design depends on, one per line: 'eventName -- what it measures'. Type only events you actually know about. Skip to drop §7.2.",
+        "optional": true
+      },
+      {
+        "id": "telemetry.newEvents",
+        "kind": "list",
+        "prompt": "New telemetry events to add, one per line: 'eventName -- payload -- where'. Skip to drop §7.3.",
+        "optional": true
+      },
+      {
+        "id": "telemetry.dashboards",
+        "kind": "list",
+        "prompt": "Dashboards / alerts to create or update, one per line. Skip to drop §7.4.",
+        "optional": true
+      }
+    ]
+  },
+  "08-ownership": {
+    "description": "Area path, on-call route. Single TODO line if all empty. Owners are user-supplied; the skill no longer scans CODEOWNERS.",
+    "seedSources": ["work-item-derived.json"],
+    "renderNotes": "Lead line for area path + on-call route. If nothing is known, leave the section as a single TODO line.",
+    "questions": [
+      {
+        "id": "ownership.areaPath",
+        "kind": "short",
+        "prompt": "Area path (e.g., 'Org\\Team\\Feature'). Skip if unknown.",
+        "seed": "work-item-derived.json::areaPath",
+        "optional": true
+      },
+      {
+        "id": "ownership.incidentRoute",
+        "kind": "short",
+        "prompt": "Incident / on-call route (Teams channel, PagerDuty service, ICM team). Skip if unknown.",
+        "optional": true
+      }
+    ]
+  },
+  "09-test-scenarios": {
+    "description": "Per-phase scenario tables (phased) or a single scenario table (simple). Plus cross-cutting.",
+    "seedSources": ["work-item-derived.json", "answers.json", "pr-diff.patch"],
+    "renderNotes": "Phased: per-phase H3 with (Scenario | Setup | Expected) table. Simple: a single (Scenario | Setup | Expected) table with no H3. De-dupe ADO acceptance criteria with user scenarios. Append 'Cross-Cutting' subsection with template defaults (all flags off, offline) only if at least one table has real rows.",
+    "questions": [
+      {
+        "id": "tests.scenarios",
+        "kind": "list",
+        "prompt": "Test scenarios, one per line. ADO acceptance criteria are pre-loaded; type 'use ado' to accept all, or list your own.",
+        "seed": "work-item-derived.json::acceptanceCriteriaItems",
+        "required": true
+      }
+    ]
+  },
+  "10-appendix": {
+    "description": "Glossary, references, decision log. OMIT the section entirely if nothing to add.",
+    "seedSources": ["answers.json"],
+    "renderNotes": "Subsections: Glossary, References, Decision log. Only emit subsections the user filled. If all three are empty, write a fragment whose body is just '<!-- OMIT SECTION -->'.",
+    "questions": [
+      {
+        "id": "appendix.glossary",
+        "kind": "list",
+        "prompt": "Glossary entries, one per line: 'term -- definition'. Skip if none.",
+        "optional": true
+      },
+      {
+        "id": "appendix.references",
+        "kind": "list",
+        "prompt": "Reference links, one per line. URLs preferred. Skip if none.",
+        "optional": true
+      },
+      {
+        "id": "appendix.decisions",
+        "kind": "list",
+        "prompt": "Decision-log entries, one per line: 'date -- decision -- rationale'. Skip if none.",
+        "optional": true
+      }
+    ]
+  }
+}
